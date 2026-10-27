@@ -1,0 +1,9 @@
+{
+  "name": "Backstretch",
+  "short_name": "Backstretch",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ff5a1f",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}
