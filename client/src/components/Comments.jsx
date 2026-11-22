@@ -97,7 +97,7 @@ function Comment({ c, children, depth, ctx }) {
             {state.removed && isStaff && <span className="tag tag-removed">removed</span>}
           </div>
           <div className="comment-actions">
-            {!gone && <Vote kind="comment" id={state.id} score={state.score} myVote={state.myVote} horizontal disabled={!ctx.canComment && !ctx.member} />}
+            {!gone && <Vote kind="comment" id={state.id} score={state.score} upvotes={state.upvotes} downvotes={state.downvotes} myVote={state.myVote} horizontal disabled={!ctx.canComment && !ctx.member} />}
             {ctx.canComment && !gone && <button type="button" className="link-btn" onClick={() => setReply(!reply)}>Reply</button>}
             {isStaff && <ModActions kind="comment" target={state} onChange={(patch) => setState({ ...state, ...patch })} />}
             <Menu items={items} />

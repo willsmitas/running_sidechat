@@ -118,7 +118,9 @@ export default function boardRoutes(db) {
       params.since = now - TOP_WINDOWS[t];
     }
     const order = {
-      hot: '((p.score + p.comment_count * 0.5 + 1) / pow((@now - p.created_at) / 3600000.0 + 2, 1.5)) DESC, p.id DESC',
+      // Hot ranks by total engagement — upvotes, downvotes and comments all
+      // count — decayed by age, so a heated debate rises like a popular post.
+      hot: '((p.upvotes + p.downvotes + p.comment_count * 2 + 1) / pow((@now - p.created_at) / 3600000.0 + 2, 1.5)) DESC, p.id DESC',
       new: 'p.created_at DESC, p.id DESC',
       top: 'p.score DESC, p.id DESC',
       active: 'p.last_activity_at DESC, p.id DESC',

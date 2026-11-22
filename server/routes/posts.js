@@ -90,7 +90,7 @@ function applyVote(db, kind, target, userId, value) {
   const table = kind === 'post' ? 'posts' : 'comments';
   return tx(db, () => {
     const prev = db.prepare('SELECT value FROM votes WHERE user_id = ? AND kind = ? AND target_id = ?').get(userId, kind, target.id)?.value ?? 0;
-    if (prev === value) return { score: target.score, myVote: value };
+    if (prev === value) return { score: target.score, upvotes: target.upvotes, downvotes: target.downvotes, myVote: value };
     if (value === 0) db.prepare('DELETE FROM votes WHERE user_id = ? AND kind = ? AND target_id = ?').run(userId, kind, target.id);
     else {
       db.prepare(`INSERT INTO votes (user_id, kind, target_id, value, created_at) VALUES (?, ?, ?, ?, ?)
@@ -100,9 +100,9 @@ function applyVote(db, kind, target, userId, value) {
     const up = (value === 1 ? 1 : 0) - (prev === 1 ? 1 : 0);
     const down = (value === -1 ? 1 : 0) - (prev === -1 ? 1 : 0);
     db.prepare(`UPDATE ${table} SET upvotes = upvotes + ?, downvotes = downvotes + ?, score = score + ? WHERE id = ?`).run(up, down, up - down, target.id);
-    const after = db.prepare(`SELECT score, upvotes FROM ${table} WHERE id = ?`).get(target.id);
+    const after = db.prepare(`SELECT score, upvotes, downvotes FROM ${table} WHERE id = ?`).get(target.id);
     onScoreChange(db, { kind, target, before: target.upvotes, after: after.upvotes });
-    return { score: after.score, myVote: value };
+    return { score: after.score, upvotes: after.upvotes, downvotes: after.downvotes, myVote: value };
   });
 }
 

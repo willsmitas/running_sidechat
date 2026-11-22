@@ -108,7 +108,7 @@ export default function Me() {
       <div className="card profile">
         <div className="profile-icon"><Icon name="user" size={28} /></div>
         <div>
-          <div className="profile-karma"><strong>{user.karma}</strong> karma</div>
+          <div className="profile-karma"><strong>{user.karma.total.toLocaleString()}</strong> total karma</div>
           <div className="muted small">
             Joined {new Date(user.createdAt).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
             {user.college?.active && <> · ✓ {user.college.conferenceShort} · D{'I'.repeat(user.college.division)}</>}
@@ -117,6 +117,22 @@ export default function Me() {
           <div className="muted small">Your profile is private. Nobody else can see your posts listed together.</div>
         </div>
       </div>
+      <div className="karma-grid">
+        {[
+          ['Post karma', user.karma.posts],
+          ['Comment karma', user.karma.comments],
+          ['Upvotes received', user.karma.upvotes],
+          ['Downvotes received', user.karma.downvotes],
+          ['Posts', user.karma.postCount],
+          ['Comments', user.karma.commentCount],
+        ].map(([label, n]) => (
+          <div key={label} className="card karma-stat">
+            <div className="karma-n">{n.toLocaleString()}</div>
+            <div className="muted small">{label}</div>
+          </div>
+        ))}
+      </div>
+      <p className="muted small karma-note">Karma is upvotes minus downvotes that other people gave your posts and comments.</p>
       <div className="tabs">
         {[['posts', 'Posts'], ['comments', 'Comments'], ['saved', 'Saved'], ['settings', 'Settings']].map(([k, label]) => (
           <button key={k} className={tab === k ? 'on' : ''} onClick={() => setParams({ tab: k })}>{label}</button>

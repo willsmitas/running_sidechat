@@ -235,7 +235,17 @@ label.check input { margin-top: 4px; }
 .vote-btn:hover { background: var(--hover); }
 .vote-btn.on-up { color: var(--up); }
 .vote-btn.on-down { color: var(--down); }
-.vote-score { font-weight: 750; font-size: 0.95rem; min-width: 2ch; text-align: center; }
+.vote-score { position: relative; font-weight: 750; font-size: 0.95rem; min-width: 2ch; text-align: center; background: none; border: 0; padding: 2px 4px; border-radius: 6px; cursor: default; color: inherit; }
+.vote-score:hover { background: var(--hover); }
+.vote-tip {
+  position: absolute; z-index: 20; right: calc(100% + 6px); top: 50%; transform: translateY(-50%);
+  display: flex; flex-direction: column; gap: 2px; padding: 6px 10px; border-radius: 10px;
+  background: var(--text); color: var(--card); font-size: 0.78rem; font-weight: 650; white-space: nowrap;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18); pointer-events: none;
+}
+.vote-h .vote-tip { right: auto; left: 50%; top: auto; bottom: calc(100% + 6px); transform: translateX(-50%); flex-direction: row; gap: 10px; }
+.vote-tip-up { color: #ff8a5c; }
+.vote-tip-down { color: #9aa6ff; }
 .vote-h .vote-score { font-size: 0.85rem; }
 .vote-score.up { color: var(--up); }
 .vote-score.down { color: var(--down); }
@@ -377,6 +387,13 @@ button.poll-row.result:hover { border-color: var(--brand); }
 .profile { display: flex; gap: 14px; align-items: center; }
 .profile-icon { width: 56px; height: 56px; border-radius: 50%; background: var(--brand-soft); color: var(--brand); display: flex; align-items: center; justify-content: center; }
 .profile-karma { font-size: 1.1rem; }
+.karma-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+@media (max-width: 480px) { .karma-grid { grid-template-columns: repeat(2, 1fr); } }
+.karma-stat { padding: 12px; text-align: center; }
+.karma-n { font-size: 1.3rem; font-weight: 800; }
+.karma-note { margin: -4px 4px 0; }
+.karma-pill { display: inline-flex; align-items: center; gap: 4px; padding: 6px 10px; border-radius: 999px; color: var(--muted); font-weight: 700; font-size: 0.875rem; text-decoration: none !important; }
+.karma-pill:hover, .karma-pill.active { background: var(--hover); color: var(--text); }
 .danger-zone { border-color: color-mix(in srgb, var(--danger) 40%, var(--line)); }
 
 /* admin */

@@ -71,7 +71,9 @@ export default function Layout({ children }) {
               )}
               <NavLink to="/chats" className="icon-btn has-badge hide-mobile" aria-label="Chats"><Icon name="chat" /><Badge n={unread.chats} /></NavLink>
               <NavLink to="/notifications" className="icon-btn has-badge" aria-label="Notifications"><Icon name="bell" /><Badge n={unread.notifications} /></NavLink>
-              <NavLink to="/me" className="icon-btn hide-mobile" aria-label="Your profile"><Icon name="user" /></NavLink>
+              <NavLink to="/me" className="karma-pill hide-mobile" aria-label={`Your profile, ${user.karma.total} karma`} title="Your total karma">
+                <Icon name="user" size={18} /> {user.karma.total.toLocaleString()}
+              </NavLink>
               <Link to="/new" className="btn btn-primary btn-sm hide-mobile"><Icon name="plus" size={16} /> Post</Link>
             </>
           ) : (

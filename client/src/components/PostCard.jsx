@@ -115,7 +115,7 @@ export default function PostCard({ post, showBoard = true, full = false, onRemov
           <Menu items={items} />
         </div>
       </div>
-      <Vote kind="post" id={p.id} score={p.score} myVote={p.myVote} disabled={!canParticipate} />
+      <Vote kind="post" id={p.id} score={p.score} upvotes={p.upvotes} downvotes={p.downvotes} myVote={p.myVote} disabled={!canParticipate} />
       {reporting && <ReportDialog kind="post" id={p.id} onClose={() => setReporting(false)} />}
     </article>
   );

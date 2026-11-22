@@ -251,7 +251,47 @@ test('anonymous chats keep thread identities', async () => {
   assert.equal((await c.post('/api/reports', { kind: 'message', id: msgs[0].id, reason: 'harassment' })).status, 404);
 });
 
-test('karma sums scores', async () => {
-  const me = (await a.get('/api/me')).data.user;
-  assert.ok(me.karma > 0);
+test('karma counts only votes from other people', async () => {
+  const k1 = await signup(srv.base, 'karma1@gmail.com');
+  const k2 = await signup(srv.base, 'karma2@gmail.com');
+  const k3 = await signup(srv.base, 'karma3@gmail.com');
+  const p = (await k1.post('/api/posts', { board: 'general', body: 'karma post' })).data.post;
+  const cm = (await k1.post(`/api/posts/${p.id}/comments`, { body: 'karma comment' })).data.comment;
+  assert.equal((await k1.get('/api/me')).data.user.karma.total, 0, 'own automatic upvotes do not count');
+  await k2.post(`/api/posts/${p.id}/vote`, { value: 1 });
+  await k3.post(`/api/posts/${p.id}/vote`, { value: -1 });
+  await k2.post(`/api/comments/${cm.id}/vote`, { value: 1 });
+  await k3.post(`/api/comments/${cm.id}/vote`, { value: 1 });
+  const k = (await k1.get('/api/me')).data.user.karma;
+  assert.deepEqual(k, { total: 2, posts: 0, comments: 2, upvotes: 3, downvotes: 1, postCount: 1, commentCount: 1 });
+});
+
+test('posts and comments expose upvote and downvote counts', async () => {
+  const p = (await a.post('/api/posts', { board: 'general', body: 'tally me' })).data.post;
+  assert.equal(p.upvotes, 1);
+  assert.equal(p.downvotes, 0);
+  const r = await c.post(`/api/posts/${p.id}/vote`, { value: -1 });
+  assert.deepEqual({ up: r.data.upvotes, down: r.data.downvotes, score: r.data.score }, { up: 1, down: 1, score: 0 });
+  const cm = (await b.post(`/api/posts/${p.id}/comments`, { body: 'tally comment' })).data.comment;
+  assert.equal(cm.upvotes, 1);
+  const detail = (await c.get(`/api/posts/${p.id}`)).data;
+  assert.equal(detail.post.downvotes, 1);
+  assert.equal(detail.comments[0].downvotes, 0);
+});
+
+test('hot ranks by total engagement, including downvotes', async () => {
+  const hot = await signup(srv.base, 'hotboard@example.com');
+  const quiet = (await hot.post('/api/posts', { board: 'pro', body: 'quiet but liked' })).data.post;
+  const heated = (await hot.post('/api/posts', { board: 'pro', body: 'controversial take' })).data.post;
+  // Same age; quiet gets 2 upvotes, heated gets 2 up and 3 down (net -1).
+  srv.db.prepare('UPDATE posts SET created_at = ? WHERE id IN (?, ?)').run(Date.now() - 3600_000, quiet.id, heated.id);
+  const voters = [];
+  for (let i = 0; i < 5; i++) voters.push(await signup(srv.base, `hotvoter${i}@example.com`));
+  await voters[0].post(`/api/posts/${quiet.id}/vote`, { value: 1 });
+  await voters[1].post(`/api/posts/${quiet.id}/vote`, { value: 1 });
+  await voters[0].post(`/api/posts/${heated.id}/vote`, { value: 1 });
+  await voters[1].post(`/api/posts/${heated.id}/vote`, { value: 1 });
+  for (const v of voters.slice(2)) await v.post(`/api/posts/${heated.id}/vote`, { value: -1 });
+  const ids = (await c.get('/api/feed?board=pro&sort=hot')).data.posts.map((x) => x.id);
+  assert.ok(ids.indexOf(heated.id) < ids.indexOf(quiet.id), 'the more-interacted post ranks higher despite a lower score');
 });

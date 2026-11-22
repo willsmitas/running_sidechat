@@ -22,6 +22,29 @@ export function unreadCounts(db, userId) {
   return { notifications, chats, pendingReports };
 }
 
+// Karma is the net of votes other people gave your posts and comments, so
+// your own automatic upvote on everything you write doesn't count.
+export function karmaFor(db, userId) {
+  const tally = (kind, table) => db.prepare(`SELECT
+      COALESCE(SUM(v.value = 1), 0) AS up, COALESCE(SUM(v.value = -1), 0) AS down
+    FROM votes v JOIN ${table} t ON t.id = v.target_id
+    WHERE v.kind = '${kind}' AND t.user_id = @u AND v.user_id != @u AND t.deleted_at IS NULL`).get({ u: userId });
+  const p = tally('post', 'posts');
+  const c = tally('comment', 'comments');
+  const counts = db.prepare(`SELECT
+      (SELECT COUNT(*) FROM posts WHERE user_id = @u AND deleted_at IS NULL) AS posts,
+      (SELECT COUNT(*) FROM comments WHERE user_id = @u AND deleted_at IS NULL) AS comments`).get({ u: userId });
+  return {
+    total: p.up - p.down + c.up - c.down,
+    posts: p.up - p.down,
+    comments: c.up - c.down,
+    upvotes: p.up + c.up,
+    downvotes: p.down + c.down,
+    postCount: counts.posts,
+    commentCount: counts.comments,
+  };
+}
+
 export default function meRoutes(db) {
   const r = Router();
 
@@ -30,9 +53,7 @@ export default function meRoutes(db) {
     const site = { name: config.appName, announcement: settings.announcement, publicRead: settings.publicReadWithoutAccount };
     if (!req.user) return res.json({ user: null, site });
     const u = req.user;
-    const karma = db.prepare(`SELECT
-        (SELECT COALESCE(SUM(score), 0) FROM posts WHERE user_id = @u AND deleted_at IS NULL) +
-        (SELECT COALESCE(SUM(score), 0) FROM comments WHERE user_id = @u AND deleted_at IS NULL) AS k`).get({ u: u.id }).k;
+    const karma = karmaFor(db, u.id);
     const counts = unreadCounts(db, u.id);
     if (isStaff(u)) counts.pendingReports = db.prepare("SELECT COUNT(*) AS n FROM reports WHERE status = 'open'").get().n
       + db.prepare("SELECT COUNT(*) AS n FROM verification_requests WHERE status = 'pending'").get().n;
