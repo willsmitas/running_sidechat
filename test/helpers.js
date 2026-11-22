@@ -6,6 +6,7 @@ const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'backstretch-test-'));
 process.env.NODE_ENV = 'test';
 process.env.DATA_DIR = dir;
 process.env.ADMIN_EMAILS = 'admin@example.com';
+process.env.GIPHY_API_KEY = 'test-giphy-key';
 
 const { openDb } = await import('../server/db.js');
 const { createApp } = await import('../server/app.js');

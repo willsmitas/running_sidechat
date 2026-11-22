@@ -44,6 +44,7 @@ export function About() {
         <li>Photos are re-encoded in your browser and stripped of metadata (GPS location, device info) again on our server.</li>
         <li>Deleting a post wipes its text and image. Deleting your account removes your login, votes, chats, and college link — and optionally everything you posted.</li>
         <li>No ads, no trackers, no third-party analytics.</li>
+        <li>GIFs picked from the GIF search load from GIPHY, so GIPHY can see the IP address of whoever views them, like any embedded image. Photos you upload are hosted by us.</li>
       </ul>
       <h2>What anonymity doesn’t cover</h2>
       <p>Writing style and details you share can identify you. We keep the minimum data needed to run the site and to act on legal requests, but no website can promise perfect anonymity. Post accordingly.</p>

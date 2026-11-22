@@ -10,6 +10,7 @@ import { deleteImage } from '../lib/images.js';
 import { POST_SELECT, serializePosts } from '../lib/serialize.js';
 import { requireAdmin, requireStaff } from '../lib/session.js';
 import { REPORT_REASONS } from './reports.js';
+import { gifUrl } from '../lib/giphy.js';
 
 export function logAction(db, modId, action, targetKind = null, targetId = null, details = null) {
   db.prepare('INSERT INTO mod_actions (mod_id, action, target_kind, target_id, details, created_at) VALUES (?, ?, ?, ?, ?, ?)')
@@ -109,7 +110,7 @@ export default function adminRoutes(db) {
           const p = db.prepare(`${POST_SELECT} WHERE p.id = @id`).get({ uid: 0, id: row.id });
           target = serializePosts(db, [p], { id: 0, role: 'admin' })[0];
         } else if (r.kind === 'comment') {
-          target = { id: row.id, postId: row.post_id, body: row.body, score: row.score, removed: !!row.removed_at, authorId: row.user_id, deleted: !!row.deleted_at };
+          target = { id: row.id, postId: row.post_id, body: row.body, image: row.image ? `/uploads/${row.image}` : null, gif: row.gif ? gifUrl(row.gif) : null, score: row.score, removed: !!row.removed_at, authorId: row.user_id, deleted: !!row.deleted_at };
         } else {
           const conv = db.prepare('SELECT post_id FROM conversations WHERE id = ?').get(row.conversation_id);
           target = { id: row.id, postId: conv?.post_id ?? null, body: row.body, removed: !!row.removed_at, authorId: row.sender_id };

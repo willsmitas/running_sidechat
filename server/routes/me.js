@@ -8,6 +8,8 @@ import { deleteImage } from '../lib/images.js';
 import { getSettings } from '../lib/settings.js';
 import { POST_SELECT, serializePosts } from '../lib/serialize.js';
 import { aliasFor } from '../lib/aliases.js';
+import { giphyEnabled } from '../lib/giphy.js';
+import { mediaLabel } from '../lib/notify.js';
 import { destroySession, requireUser } from '../lib/session.js';
 
 const PAGE = 25;
@@ -50,7 +52,7 @@ export default function meRoutes(db) {
 
   r.get('/me', (req, res) => {
     const settings = getSettings(db);
-    const site = { name: config.appName, announcement: settings.announcement, publicRead: settings.publicReadWithoutAccount };
+    const site = { name: config.appName, announcement: settings.announcement, publicRead: settings.publicReadWithoutAccount, gifs: giphyEnabled() };
     if (!req.user) return res.json({ user: null, site });
     const u = req.user;
     const karma = karmaFor(db, u.id);
@@ -89,13 +91,13 @@ export default function meRoutes(db) {
 
   r.get('/me/comments', requireUser, (req, res) => {
     const offset = Math.max(0, Number(req.query.offset) || 0);
-    const rows = db.prepare(`SELECT c.id, c.post_id, c.body, c.score, c.created_at, c.alias_idx, c.removed_at, p.body AS post_body,
+    const rows = db.prepare(`SELECT c.id, c.post_id, c.body, c.image, c.gif, c.score, c.created_at, c.alias_idx, c.removed_at, p.body AS post_body,
         b.slug AS board_slug, b.name AS board_name, b.emoji AS board_emoji
       FROM comments c JOIN posts p ON p.id = c.post_id JOIN boards b ON b.id = p.board_id
       WHERE c.user_id = ? AND c.deleted_at IS NULL ORDER BY c.created_at DESC LIMIT ? OFFSET ?`).all(req.user.id, PAGE + 1, offset);
     res.json({
       comments: rows.slice(0, PAGE).map((c) => ({
-        id: c.id, postId: c.post_id, body: c.body, score: c.score, createdAt: c.created_at, removed: !!c.removed_at,
+        id: c.id, postId: c.post_id, body: c.body || mediaLabel(c), score: c.score, createdAt: c.created_at, removed: !!c.removed_at,
         author: aliasFor(c.post_id, c.alias_idx), postSnippet: c.post_body.slice(0, 120),
         board: { slug: c.board_slug, name: c.board_name, emoji: c.board_emoji },
       })),
@@ -141,7 +143,8 @@ export default function meRoutes(db) {
       if (req.body.deleteContent) {
         for (const p of db.prepare('SELECT id, image FROM posts WHERE user_id = ?').all(uid)) if (p.image) images.push(p.image);
         db.prepare("UPDATE posts SET deleted_at = ?, body = '', image = NULL WHERE user_id = ?").run(Date.now(), uid);
-        db.prepare("UPDATE comments SET deleted_at = ?, body = '' WHERE user_id = ?").run(Date.now(), uid);
+        for (const c of db.prepare('SELECT image FROM comments WHERE user_id = ? AND image IS NOT NULL').all(uid)) images.push(c.image);
+        db.prepare("UPDATE comments SET deleted_at = ?, body = '', image = NULL, gif = NULL WHERE user_id = ?").run(Date.now(), uid);
       }
       db.prepare('DELETE FROM votes WHERE user_id = ?').run(uid);
       db.prepare('DELETE FROM users WHERE id = ?').run(uid);

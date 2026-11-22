@@ -1,28 +1,55 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { del, post } from '../api.js';
 import { useSession } from '../session.jsx';
 import { useToast } from '../toast.jsx';
-import { fullDate, timeAgo } from '../util.js';
+import { fullDate, prepareImage, timeAgo } from '../util.js';
 import Alias from './Alias.jsx';
 import Vote from './Vote.jsx';
 import Menu from './Menu.jsx';
 import Linkify from './Linkify.jsx';
 import ReportDialog from './ReportDialog.jsx';
 import ModActions from './ModActions.jsx';
+import Icon from './Icon.jsx';
+import GifPicker from './GifPicker.jsx';
 
 export function CommentBox({ postId, parentId = null, me, onPosted, autoFocus = false, onCancel, placeholder }) {
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState(false);
+  // At most one attachment: { kind: 'image', file, preview } or { kind: 'gif', gif }.
+  const [media, setMedia] = useState(null);
+  const [picking, setPicking] = useState(false);
+  const fileRef = useRef(null);
+  const { site } = useSession();
   const toast = useToast();
+  const ready = body.trim() || media;
+
+  async function pickImage(e) {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f) return;
+    const file = await prepareImage(f);
+    if (file.size > 6 * 1024 * 1024) return toast('Images must be under 6 MB.', 'error');
+    setMedia({ kind: 'image', file, preview: URL.createObjectURL(file) });
+  }
 
   async function submit(e) {
     e.preventDefault();
-    if (!body.trim()) return;
+    if (!ready) return;
     setBusy(true);
     try {
-      const r = await post(`/posts/${postId}/comments`, { body, parentId });
+      let payload = { body, parentId };
+      if (media?.kind === 'image') {
+        payload = new FormData();
+        payload.append('body', body);
+        if (parentId) payload.append('parentId', parentId);
+        payload.append('image', media.file);
+      } else if (media?.kind === 'gif') {
+        payload.gifId = media.gif.id;
+      }
+      const r = await post(`/posts/${postId}/comments`, payload);
       setBody('');
+      setMedia(null);
       onPosted(r.comment);
     } catch (err) {
       toast(err.message, 'error');
@@ -43,12 +70,43 @@ export function CommentBox({ postId, parentId = null, me, onPosted, autoFocus = 
         autoFocus={autoFocus}
         onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submit(e); }}
       />
+      {media && (
+        <div className="comment-attach-row">
+          <div className="comment-attach">
+            <img src={media.kind === 'image' ? media.preview : media.gif.url} alt="Attachment preview" referrerPolicy="no-referrer" />
+            <button type="button" className="icon-btn" onClick={() => setMedia(null)} aria-label="Remove attachment"><Icon name="close" size={16} /></button>
+          </div>
+        </div>
+      )}
       <div className="comment-box-actions">
+        <input ref={fileRef} type="file" accept="image/*" hidden onChange={pickImage} />
+        <button type="button" className="icon-btn" onClick={() => fileRef.current.click()} aria-label="Add image or GIF file" title="Add image"><Icon name="image" size={18} /></button>
+        {site.gifs && <button type="button" className="gif-btn" onClick={() => setPicking(true)} aria-label="Search GIFs" title="Search GIFs">GIF</button>}
+        <span className="spacer" />
         {onCancel && <button type="button" className="btn btn-ghost btn-sm" onClick={onCancel}>Cancel</button>}
-        <button className="btn btn-primary btn-sm" disabled={busy || !body.trim()}>{busy ? '…' : 'Post'}</button>
+        <button className="btn btn-primary btn-sm" disabled={busy || !ready}>{busy ? '…' : 'Post'}</button>
       </div>
+      {picking && <GifPicker onClose={() => setPicking(false)} onPick={(gif) => { setMedia({ kind: 'gif', gif }); setPicking(false); }} />}
     </form>
   );
+}
+
+function CommentMedia({ c }) {
+  if (c.image) {
+    return (
+      <a href={c.image} target="_blank" rel="noreferrer" className="comment-media">
+        <img src={c.image} alt="" loading="lazy" />
+      </a>
+    );
+  }
+  if (c.gif) {
+    return (
+      <div className="comment-media">
+        <img src={c.gif.url} alt="GIF" loading="lazy" referrerPolicy="no-referrer" />
+      </div>
+    );
+  }
+  return null;
 }
 
 function Comment({ c, children, depth, ctx }) {
@@ -72,7 +130,7 @@ function Comment({ c, children, depth, ctx }) {
         if (!confirm('Delete this comment?')) return;
         try {
           await del(`/comments/${state.id}`);
-          setState({ ...state, deleted: true, body: '', author: null });
+          setState({ ...state, deleted: true, body: '', author: null, image: null, gif: null });
         } catch (err) { toast(err.message, 'error'); }
       },
     },
@@ -90,12 +148,15 @@ function Comment({ c, children, depth, ctx }) {
       </div>
       {!collapsed && (
         <>
-          <div className="comment-body">
-            {state.deleted ? <span className="muted">[deleted]</span>
-              : state.removed && !isStaff ? <span className="muted">[removed by moderators]</span>
-                : <Linkify text={state.body} />}
-            {state.removed && isStaff && <span className="tag tag-removed">removed</span>}
-          </div>
+          {(state.body || gone || state.removed) && (
+            <div className="comment-body">
+              {state.deleted ? <span className="muted">[deleted]</span>
+                : state.removed && !isStaff ? <span className="muted">[removed by moderators]</span>
+                  : <Linkify text={state.body} />}
+              {state.removed && isStaff && <span className="tag tag-removed">removed</span>}
+            </div>
+          )}
+          {!gone && <CommentMedia c={state} />}
           <div className="comment-actions">
             {!gone && <Vote kind="comment" id={state.id} score={state.score} upvotes={state.upvotes} downvotes={state.downvotes} myVote={state.myVote} horizontal disabled={!ctx.canComment && !ctx.member} />}
             {ctx.canComment && !gone && <button type="button" className="link-btn" onClick={() => setReply(!reply)}>Reply</button>}

@@ -47,6 +47,8 @@ export default {
   // In development (no SMTP configured) verification codes are returned in API
   // responses so the app is usable without an email provider.
   exposeDevCodes: !isProd && !env.SMTP_URL,
+  // Enables GIF search in comments. Free key: https://developers.giphy.com
+  giphyKey: env.GIPHY_API_KEY || '',
   adminEmails: (env.ADMIN_EMAILS || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean),
   collegeVerifyDays: Number(env.COLLEGE_VERIFY_DAYS || 365),
   sessionDays: Number(env.SESSION_DAYS || 60),

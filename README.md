@@ -15,6 +15,7 @@ Anonymous message boards for competitive distance running — LetsRun-style conv
 **Sidechat-style posting**
 - No usernames. Posts and comments are anonymous; inside a thread everyone gets a stable animal icon, and the original poster is marked **OP**. Icons differ from thread to thread.
 - Upvotes/downvotes, Hot / New / Active / Top (day–all time) sorting, threaded replies, polls (results revealed after you vote), image uploads, saves, hides, search (SQLite FTS).
+- **Images and GIFs in comments**: attach a photo or GIF file, or search GIPHY (set `GIPHY_API_KEY`; get a free key at developers.giphy.com — without it the GIF search button is hidden).
 - Optional **flair** shows a verified poster’s division or conference (e.g. `✓ DI · Big Ten`) without revealing their school.
 - Notifications for comments on your posts, replies to your comments, and upvote milestones (grouped, mutable per thread).
 - **Anonymous chats**: message the OP or a commenter; both sides keep their thread identity. Block and report supported.

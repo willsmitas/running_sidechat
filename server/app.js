@@ -12,6 +12,7 @@ import meRoutes from './routes/me.js';
 import reportRoutes from './routes/reports.js';
 import chatRoutes from './routes/chats.js';
 import adminRoutes from './routes/admin.js';
+import gifRoutes from './routes/gifs.js';
 
 export function createApp(db) {
   const app = express();
@@ -58,6 +59,7 @@ export function createApp(db) {
   api.use(meRoutes(db));
   api.use(reportRoutes(db));
   api.use(chatRoutes(db));
+  api.use(gifRoutes());
   api.use('/admin', adminRoutes(db));
   api.use((_req, _res, next) => next(notFound('No such endpoint.')));
   api.use((err, _req, res, _next) => {

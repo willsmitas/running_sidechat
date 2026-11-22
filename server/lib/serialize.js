@@ -1,5 +1,6 @@
 import { aliasFor } from './aliases.js';
 import { isStaff } from './access.js';
+import { gifUrl } from './giphy.js';
 
 export function boardSummary(b) {
   return { id: b.id, slug: b.slug, name: b.name, emoji: b.emoji, kind: b.kind, division: b.division ?? null };
@@ -78,6 +79,8 @@ export function serializeComment(c, user, staff) {
     postId: c.post_id,
     parentId: c.parent_id,
     body: gone ? '' : c.body,
+    image: !gone && c.image ? `/uploads/${c.image}` : null,
+    gif: !gone && c.gif ? { id: c.gif, url: gifUrl(c.gif) } : null,
     deleted: !!c.deleted_at,
     removed: !!c.removed_at,
     createdAt: c.created_at,

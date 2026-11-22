@@ -71,7 +71,8 @@ function Reports() {
             <PostCard post={r.target} />
           ) : (
             <blockquote className="report-body">
-              {r.target.body || <em>[deleted]</em>}
+              {r.target.body || (!r.target.image && !r.target.gif && <em>[deleted]</em>)}
+              {(r.target.image || r.target.gif) && <img className="report-media" src={r.target.image || r.target.gif} alt="Reported attachment" referrerPolicy="no-referrer" />}
               {r.target.postId && <div className="small"><Link to={`/p/${r.target.postId}${r.kind === 'comment' ? `#c${r.target.id}` : ''}`}>View in context</Link></div>}
             </blockquote>
           )}

@@ -311,8 +311,18 @@ export function openDb(file) {
   const db = new DatabaseSync(file);
   db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;');
   db.exec(SCHEMA);
+  migrate(db);
   seed(db);
   return db;
+}
+
+// Columns added after the first release. CREATE TABLE IF NOT EXISTS won't
+// touch existing tables, so add anything missing here.
+function migrate(db) {
+  const has = (table, col) => db.prepare(`PRAGMA table_info(${table})`).all().some((c) => c.name === col);
+  if (!has('comments', 'image')) db.exec('ALTER TABLE comments ADD COLUMN image TEXT');
+  // GIPHY id only; the display URL is always built server-side.
+  if (!has('comments', 'gif')) db.exec('ALTER TABLE comments ADD COLUMN gif TEXT');
 }
 
 export function tx(db, fn) {

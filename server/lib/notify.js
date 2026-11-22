@@ -3,6 +3,11 @@
 
 const MILESTONES = [10, 25, 50, 100, 250, 500, 1000, 2500, 5000];
 
+// What to call a comment that is only an attachment.
+export function mediaLabel(c) {
+  return c.gif ? '[GIF]' : c.image ? '[image]' : '';
+}
+
 export function snippet(text, n = 60) {
   const t = String(text || '').replace(/\s+/g, ' ').trim();
   return t.length > n ? `${t.slice(0, n - 1)}…` : t;
@@ -27,7 +32,7 @@ export function notify(db, { userId, type, postId = null, commentId = null, text
 
 export function onNewComment(db, { post, comment, parent, authorId }) {
   const notified = new Set([authorId]);
-  const bodySnip = snippet(comment.body);
+  const bodySnip = snippet(comment.body || mediaLabel(comment));
   if (parent && parent.user_id && !notified.has(parent.user_id)) {
     notified.add(parent.user_id);
     notify(db, {

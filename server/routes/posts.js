@@ -12,6 +12,7 @@ import { requireActive } from '../lib/session.js';
 import { aliasFor } from '../lib/aliases.js';
 import { getSettings } from '../lib/settings.js';
 import { ensureAlias } from '../lib/threads.js';
+import { checkGifId } from '../lib/giphy.js';
 import { onNewComment, onScoreChange } from '../lib/notify.js';
 import { getBoardOr404 } from './boards.js';
 import { logAction } from './admin.js';
@@ -243,13 +244,16 @@ export default function postRoutes(db) {
       ON CONFLICT(user_id, post_id) DO UPDATE SET muted = excluded.muted`).run(uid, row.id, on ? 0 : 1);
   });
 
-  r.post('/posts/:id/comments', requireActive, (req, res) => {
+  r.post('/posts/:id/comments', requireActive, maybeUpload, async (req, res) => {
     const row = loadPost(db, req.params.id, req.user);
     const { access } = assertCanSee(db, req.user, row);
     assertCanParticipate(req.user, access);
     if (row.locked) throw forbidden('This thread is locked.');
     if (row.removed_at || row.deleted_at) throw forbidden('You can’t comment on this post.');
-    const body = checkContent(db, cleanText(req.body.body, { field: 'Your comment', max: 1000 }));
+    if (req.file && req.body.gifId) throw badRequest('Attach an image or a GIF, not both.');
+    const hasMedia = !!(req.file || req.body.gifId);
+    const text = cleanText(req.body.body, { field: 'Your comment', max: 1000, min: hasMedia ? 0 : 1 });
+    const body = text ? checkContent(db, text) : '';
     let parent = null;
     if (req.body.parentId) {
       parent = db.prepare('SELECT * FROM comments WHERE id = ? AND post_id = ?').get(Number(req.body.parentId), row.id);
@@ -258,17 +262,25 @@ export default function postRoutes(db) {
     }
     hit(`comment:${req.user.id}`, 15, 5 * 60_000);
     hit(`comment-day:${req.user.id}`, 300, 86400_000);
+    const gif = req.body.gifId ? await checkGifId(req.body.gifId) : null;
+    const image = req.file ? saveImage(uploadDir, req.file.buffer) : null;
     const now = Date.now();
-    const comment = tx(db, () => {
-      const alias = { idx: ensureAlias(db, row.id, req.user.id) };
-      const id = Number(db.prepare(`INSERT INTO comments (post_id, parent_id, user_id, alias_idx, body, created_at, upvotes, score)
-        VALUES (?, ?, ?, ?, ?, ?, 1, 1)`).run(row.id, parent?.id ?? null, req.user.id, alias.idx, body, now).lastInsertRowid);
-      db.prepare("INSERT INTO votes (user_id, kind, target_id, value, created_at) VALUES (?, 'comment', ?, 1, ?)").run(req.user.id, id, now);
-      db.prepare('UPDATE posts SET comment_count = comment_count + 1, last_activity_at = ? WHERE id = ?').run(now, row.id);
-      const c = db.prepare('SELECT * FROM comments WHERE id = ?').get(id);
-      onNewComment(db, { post: row, comment: c, parent, authorId: req.user.id });
-      return c;
-    });
+    let comment;
+    try {
+      comment = tx(db, () => {
+        const alias = { idx: ensureAlias(db, row.id, req.user.id) };
+        const id = Number(db.prepare(`INSERT INTO comments (post_id, parent_id, user_id, alias_idx, body, image, gif, created_at, upvotes, score)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 1)`).run(row.id, parent?.id ?? null, req.user.id, alias.idx, body, image, gif, now).lastInsertRowid);
+        db.prepare("INSERT INTO votes (user_id, kind, target_id, value, created_at) VALUES (?, 'comment', ?, 1, ?)").run(req.user.id, id, now);
+        db.prepare('UPDATE posts SET comment_count = comment_count + 1, last_activity_at = ? WHERE id = ?').run(now, row.id);
+        const c = db.prepare('SELECT * FROM comments WHERE id = ?').get(id);
+        onNewComment(db, { post: row, comment: c, parent, authorId: req.user.id });
+        return c;
+      });
+    } catch (err) {
+      deleteImage(uploadDir, image);
+      throw err;
+    }
     comment.my_vote = 1;
     res.status(201).json({ comment: serializeComment(comment, req.user, isStaff(req.user)) });
   });
@@ -278,7 +290,8 @@ export default function postRoutes(db) {
     if (!c) throw notFound();
     if (c.user_id !== req.user.id) throw forbidden('You can only delete your own comments.');
     if (!c.deleted_at) {
-      db.prepare("UPDATE comments SET deleted_at = ?, body = '' WHERE id = ?").run(Date.now(), c.id);
+      db.prepare("UPDATE comments SET deleted_at = ?, body = '', image = NULL, gif = NULL WHERE id = ?").run(Date.now(), c.id);
+      deleteImage(uploadDir, c.image);
       db.prepare('UPDATE posts SET comment_count = MAX(0, comment_count - 1) WHERE id = ?').run(c.post_id);
     }
     res.json({ ok: true });
