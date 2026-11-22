@@ -141,9 +141,8 @@ export default function postRoutes(db) {
     const board = getBoardOr404(db, req.body.board);
     const a = boardAccess(db, req.user, board);
     if (!a.canPost) throw forbidden(a.canView ? 'You can’t post on this board.' : lockedMessage(a.reason, board));
-    const body = cleanText(req.body.body, { field: 'Your post', max: 2000 });
-    checkContent(db, body);
-    const poll = parsePoll(req.body.poll);
+    const body = checkContent(db, cleanText(req.body.body, { field: 'Your post', max: 2000 }));
+    const poll = parsePoll(req.body.poll)?.map((o) => checkContent(db, o));
     const flair = flairFor(req.user, board, req.body.flair);
     hit(`post:${req.user.id}`, 6, 10 * 60_000);
     hit(`post-day:${req.user.id}`, 40, 86400_000);
@@ -250,8 +249,7 @@ export default function postRoutes(db) {
     assertCanParticipate(req.user, access);
     if (row.locked) throw forbidden('This thread is locked.');
     if (row.removed_at || row.deleted_at) throw forbidden('You can’t comment on this post.');
-    const body = cleanText(req.body.body, { field: 'Your comment', max: 1000 });
-    checkContent(db, body);
+    const body = checkContent(db, cleanText(req.body.body, { field: 'Your comment', max: 1000 }));
     let parent = null;
     if (req.body.parentId) {
       parent = db.prepare('SELECT * FROM comments WHERE id = ? AND post_id = ?').get(Number(req.body.parentId), row.id);

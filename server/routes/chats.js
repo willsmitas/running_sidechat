@@ -109,8 +109,7 @@ export default function chatRoutes(db) {
     const { conv } = loadConv(db, req.params.id, req.user.id);
     if (conv.blocked_by) throw forbidden(conv.blocked_by === req.user.id ? 'You blocked this chat. Unblock to send messages.' : 'You can’t send messages in this chat.');
     if (!conv.starter_id || !conv.recipient_id) throw forbidden('The other person left.');
-    const body = cleanText(req.body.body, { field: 'Message', max: 1000 });
-    checkContent(db, body, { contactInfo: false });
+    const body = checkContent(db, cleanText(req.body.body, { field: 'Message', max: 1000 }), { contactInfo: false });
     hit(`chat-msg:${req.user.id}`, 40, 5 * 60_000);
     const now = Date.now();
     const side_ = conv.starter_id === req.user.id ? 'starter' : 'recipient';

@@ -298,6 +298,8 @@ export const DEFAULT_SETTINGS = {
   bannedWords: [],
   // Block phone numbers and email addresses in posts (doxxing guard).
   blockContactInfo: true,
+  // Show swear words with their vowels starred (fuck -> f*ck).
+  censorExpletives: true,
   // Let people read public boards without an account.
   publicReadWithoutAccount: true,
   // Pinned site-wide announcement shown above feeds ('' to hide).

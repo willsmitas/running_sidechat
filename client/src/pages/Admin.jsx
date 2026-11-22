@@ -333,6 +333,7 @@ function SettingsAdmin() {
       <label>Site announcement (blank to hide)<input value={f.announcement} onChange={(e) => setF({ ...f, announcement: e.target.value })} /></label>
       <label>Hide posts at or below score<input type="number" value={f.autoHideScore} onChange={(e) => setF({ ...f, autoHideScore: e.target.value })} /></label>
       <label>Reports needed to auto-hide<input type="number" min={1} value={f.reportThreshold} onChange={(e) => setF({ ...f, reportThreshold: e.target.value })} /></label>
+      <label className="check"><input type="checkbox" checked={f.censorExpletives} onChange={(e) => setF({ ...f, censorExpletives: e.target.checked })} /> Censor swear words (fuck → f*ck). Slurs are always blocked.</label>
       <label className="check"><input type="checkbox" checked={f.blockContactInfo} onChange={(e) => setF({ ...f, blockContactInfo: e.target.checked })} /> Block emails and phone numbers in posts</label>
       <label className="check"><input type="checkbox" checked={f.publicReadWithoutAccount} onChange={(e) => setF({ ...f, publicReadWithoutAccount: e.target.checked })} /> Let logged-out visitors read public boards</label>
       <label>Banned words or phrases (one per line)<textarea rows={6} value={f.bannedWords} onChange={(e) => setF({ ...f, bannedWords: e.target.value })} /></label>

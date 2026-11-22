@@ -12,7 +12,7 @@ export function Rules() {
         <li><strong>No doxxing.</strong> Don’t post anyone’s contact info, address, or private details, and don’t try to unmask anonymous users.</li>
         <li><strong>Leave private individuals out of it.</strong> High schoolers, walk-ons, and non-public figures are off-limits by name. Public figures and coaches can be discussed on their public conduct.</li>
         <li><strong>No defamation.</strong> Don’t present rumors about a real person as fact. Allegations of abuse or misconduct belong with a coach, compliance office, Title IX office, or SafeSport — not here.</li>
-        <li><strong>No hate speech, threats, or sexual content.</strong></li>
+        <li><strong>No slurs, hate speech, threats, or sexual content.</strong> Posts containing slurs are blocked automatically. Swearing is fine, but it’s shown censored (f*ck).</li>
         <li><strong>Body talk is off-limits.</strong> Comments on athletes’ weight or bodies, and content that promotes disordered eating, are removed.</li>
         <li><strong>College boards stay in the room.</strong> Don’t screenshot private board posts to the public, and don’t use them to recruit, tamper, or game NCAA rules.</li>
         <li><strong>No spam or self-promo</strong> beyond the occasional relevant link.</li>

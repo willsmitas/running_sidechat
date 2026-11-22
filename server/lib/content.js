@@ -1,5 +1,6 @@
 import { badRequest } from './errors.js';
 import { getSettings } from './settings.js';
+import { censorExpletives, findSlur } from './profanity.js';
 
 const EMAIL_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
 // North American phone numbers in common formats; avoids matching race times
@@ -17,8 +18,11 @@ export function cleanText(raw, { field = 'Text', min = 1, max = 2000 } = {}) {
   return text;
 }
 
+// Validates user text and returns the version to store: slurs and banned
+// words are refused, expletives are kept but censored (fuck -> f*ck).
 export function checkContent(db, text, { contactInfo = true } = {}) {
   const s = getSettings(db);
+  if (findSlur(text)) throw badRequest('That contains a slur, which isn’t allowed here.');
   if (contactInfo && s.blockContactInfo) {
     if (EMAIL_RE.test(text)) throw badRequest('Posts can’t include email addresses. Keep it anonymous — for you and everyone else.');
     if (PHONE_RE.test(text)) throw badRequest('Posts can’t include phone numbers.');
@@ -27,4 +31,5 @@ export function checkContent(db, text, { contactInfo = true } = {}) {
   for (const w of s.bannedWords) {
     if (w && lower.includes(w.toLowerCase())) throw badRequest('That contains language that isn’t allowed here.');
   }
+  return s.censorExpletives ? censorExpletives(text) : text;
 }
