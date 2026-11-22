@@ -46,7 +46,7 @@ export default function Home({ scope = 'home' }) {
       {scope === 'college' && <h1 className="page-title">My college boards</h1>}
       {user && <Composer compact onPosted={() => setNonce()} defaultBoard={feedScope === 'college' ? boards.find((b) => b.kind === 'conference' && b.member)?.slug : undefined} />}
       <SortBar sort={sort} t={t} onChange={(v) => setParams({ ...Object.fromEntries(params), ...v })} />
-      <Feed key={nonce} path={`/feed?board=${feedScope}&sort=${sort}&t=${t}`} />
+      <Feed version={nonce} path={`/feed?board=${feedScope}&sort=${sort}&t=${t}`} />
     </div>
   );
 }

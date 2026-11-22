@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router-dom';
 import { useSession } from './session.jsx';
 import Layout from './components/Layout.jsx';
 import Spinner from './components/Spinner.jsx';
+import ScrollManager from './ScrollManager.jsx';
 import Home from './pages/Home.jsx';
 import Board from './pages/Board.jsx';
 import Boards from './pages/Boards.jsx';
@@ -22,6 +23,7 @@ export default function App() {
   if (loading) return <div className="boot"><Spinner /></div>;
   return (
     <Layout>
+      <ScrollManager />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/college" element={<Home scope="college" />} />

@@ -11,13 +11,16 @@ import Spinner from '../components/Spinner.jsx';
 import Icon from '../components/Icon.jsx';
 import { useTitle } from '../useTitle.js';
 
+// Board headers seen this session, shown instantly when you come back.
+const boardCache = new Map();
+
 const KIND_LABEL = { public: 'Public board', ncaa: 'Verified NCAA athletes', division: 'Verified division members', conference: 'Verified conference members' };
 
 export default function Board() {
   const { slug } = useParams();
   const { user, setBoard } = useSession();
   const toast = useToast();
-  const [board, setB] = useState(null);
+  const [board, setB] = useState(() => boardCache.get(slug) || null);
   const [error, setError] = useState(null);
   const [params, setParams] = useSearchParams();
   const [nonce, setNonce] = useState(0);
@@ -27,9 +30,9 @@ export default function Board() {
   useTitle(board?.name);
 
   useEffect(() => {
-    setB(null);
+    setB(boardCache.get(slug) || null);
     setError(null);
-    get(`/boards/${slug}`).then((r) => setB(r.board)).catch(setError);
+    get(`/boards/${slug}`).then((r) => { boardCache.set(slug, r.board); setB(r.board); }).catch(setError);
   }, [slug, user?.college?.active]);
 
   if (error) return <div className="page"><div className="card empty">{error.message}</div></div>;
@@ -40,6 +43,7 @@ export default function Board() {
     try {
       await post(`/boards/${slug}/prefs`, { [key]: val });
       setB({ ...board, [key]: val });
+      boardCache.set(slug, { ...board, [key]: val });
       setBoard(slug, { [key]: val });
       toast(key === 'starred' ? (val ? 'Starred' : 'Unstarred') : val ? 'Muted from your home feed' : 'Unmuted');
     } catch (err) {
@@ -80,7 +84,7 @@ export default function Board() {
           {board.canPost && <Composer compact defaultBoard={board.slug} onPosted={() => setNonce(nonce + 1)} key={`c-${board.slug}`} />}
           {!board.member && <div className="callout">You can see this board as staff, but only members can post or vote.</div>}
           <SortBar sort={sort} t={t} onChange={(v) => setParams(v)} />
-          <Feed key={`${slug}-${nonce}`} path={`/feed?board=${slug}&sort=${sort}&t=${t}`} showBoard={false} canParticipate={board.member}
+          <Feed key={slug} version={nonce} path={`/feed?board=${slug}&sort=${sort}&t=${t}`} showBoard={false} canParticipate={board.member}
             empty={<div className="card empty">No posts yet. Start the conversation.</div>} />
         </>
       )}
